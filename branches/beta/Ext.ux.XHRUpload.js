@@ -61,12 +61,12 @@ Ext.ux.XHRUpload = function(config){
 		,sendMultiPartFormData:false
 	});
 	this.addEvents( //extend the xhr's progress events to here
-		'loadstart',
-		'progress',
-		'abort',
-		'error',
-		'load',
-		'loadend'
+		'loadstart'
+		,'progress'
+		,'abort'
+		,'error'
+		,'load'
+		,'loadend'
 	);
 	Ext.ux.XHRUpload.superclass.constructor.call(this);
 };
