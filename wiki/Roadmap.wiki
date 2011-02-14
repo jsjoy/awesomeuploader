@@ -1,0 +1,19 @@
+#summary One-sentence summary of this page.
+#labels Roadmap
+
+= Roadmap =
+
+*Features*
+    Drag And Drop Target Configuration
+    Better use of File API when available
+        -Modern browsers support multi-select file uploads
+        -Option to prefer XHR2 uploads if available (even for standard file selection dialog)
+    More MaxFileSize configuration options
+    Finalize event names
+    Include destroy functionality
+
+*Debugging*
+    Settle on a swfupload version to use that is the most compatible with the least amount of bugs
+
+*Documentation*
+    Table with browsers & feature support
