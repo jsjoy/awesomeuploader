@@ -10,7 +10,8 @@
         -Option to prefer XHR2 uploads if available (even for standard file selection dialog)
     More MaxFileSize configuration options
     Finalize event names
-    Include destroy functionality
+    Add destroy functionality
+    Add disable functionality
 
 *Debugging*
     Settle on a swfupload version to use that is the most compatible with the least amount of bugs
