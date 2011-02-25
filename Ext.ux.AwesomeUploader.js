@@ -243,18 +243,7 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			}
 			,drop:{
 				scope:this
-				,fn:function(event){
-					event.stopEvent();
-					var files = event.browserEvent.dataTransfer.files;
-
-					if(files === undefined){
-						return true;
-					}
-					var len = files.length;
-					while(--len >= 0){
-						this.processDragAndDropFileUpload(files[len]);
-					}
-				}
+				,fn:this.processDragAndDropUpload
 			}
 		});
 		
@@ -274,18 +263,7 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 				}
 				,drop:{
 					scope:this
-					,fn:function(event){
-						event.stopEvent();
-						var files = event.browserEvent.dataTransfer.files;
-	
-						if(files === undefined){
-							return true;
-						}
-						var len = files.length;
-						while(--len >= 0){
-							this.processDragAndDropFileUpload(files[len]);
-						}
-					}
+					,fn:this.processDragAndDropUpload
 				}
 			});
 
@@ -353,6 +331,16 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			this.uploaderAlertMsg.getDialog().focus();
 		}
 		
+	}
+	,processDragAndDropUpload:function(event){
+		event.stopEvent();
+		if(event.browserEvent.dataTransfer && event.browserEvent.dataTransfer.files){
+			var files = event.browserEvent.dataTransfer.files;
+			var len = files.length;
+			while(--len >= 0){
+				this.processDragAndDropFileUpload(files[len]);
+			}
+		}
 	}
 	,dragAndDropUploadStart:function(fileInfo){
 		var upload = new Ext.ux.XHRUpload({
@@ -450,7 +438,7 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 	}
 	,swfUploadFileDialogComplete:function(){
 		if(this.autoStartUpload){
-			this.swfUploadUploadStart();
+			this.swfUploadUploadStart(fileInfo);
 		}
 	}
 	,swfUploadUploadProgress:function(file, bytesComplete, bytesTotal){
@@ -528,21 +516,21 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 		if(false !== this.fireEvent('fileselected', this, Ext.apply({},fileInfo) ) ){
 			
 			if(this.autoStartUpload){
-				this.standardUploadStart();
+				this.standardUploadStart(fileInfo);
 			}
 			this.fileQueue[fileInfo.id] = fileInfo;
 		}
 		
 	}
 	,doFormUpload : function(fileInfo){ //o, extraPostData, url){ //based off of Ext.Ajax.doFormUpload
-		var id = Ext.id(),
-			doc = document,
-			frame = doc.createElement('iframe'),
-			form = Ext.getDom(fileInfo.form),
-			hiddens = [],
-			hd,
-			encoding = 'multipart/form-data',
-			buf = {
+		var id = Ext.id()
+			,doc = document
+			,frame = doc.createElement('iframe')
+			,form = Ext.getDom(fileInfo.form)
+			,hiddens = []
+			,hd
+			,encoding = 'multipart/form-data'
+			,buf = {
 				target: form.target,
 				method: form.method,
 				encoding: form.encoding,
