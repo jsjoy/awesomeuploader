@@ -138,12 +138,17 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			}
 		}
 	}
+    /**
+     * @public
+     * Abort all files.
+     */
 	,abortAllUploads:function(){
 		var fileId;
 		for(fileId in this.fileQueue){
 			this.abortUpload(fileId);
 		}
-	}
+	}//eof abortAllUploads
+    
 	,abortUpload:function(fileId){
 	
 		if(this.fileQueue[fileId].status == 'started'){
