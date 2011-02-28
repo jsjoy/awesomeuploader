@@ -3,6 +3,8 @@
 Awesome Uploader
 AwesomeUploader JavaScript Class
 
+Documentation for SWFUpload is available at http://demo.swfupload.org/Documentation/
+
 Copyright (c) 2010, Andrew Rymarczyk
 All rights reserved.
 
@@ -31,25 +33,123 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Ext.ns('Ext.ux');
 
+/**
+ * @class Ext.ux.AwesomeUploader
+ * @extends Ext.Container
+ */
 Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
-	initComponent:function(){
+	// configurables
+   
+    /**
+     * @cfg {Boolean} enableDD
+     * Defaults true.
+     */
+    enableDD: true
+    /**
+     * @cfg {Boolean} enableMultiple
+     * Indicates if the file dialog allows for multiple selections.  Defaults to true.
+     */
+    ,enableMultiple: true     
+    
+    //constants
+    /**
+     * @static
+     * @type String
+     */
+    ,STATUS_ABORTED: 'aborted'
+    /**
+     * @static
+     * @type String
+     */
+    ,STATUS_COMPLETE: 'completed'
+    /**
+     * @static
+     * @type String
+     */
+    ,STATUS_ERROR: 'error'
+    /**
+     * @static
+     * @type String
+     */
+    ,STATUS_QUEUED: 'queued'
+    /**
+     * @static
+     * @type String
+     */
+    ,STATUS_REMOVED: 'removed'    
+    /**
+     * @static
+     * @type String
+     */
+    ,STATUS_STARTED: 'started'    
+    
+	,initComponent:function(){
 		
 		this.addEvents(
+            /**
+             * @event fileselected
+             * Fires when the user selects a file.  
+             * Fired for each file if multiple file selection is available.
+             * @param {Ext.ux.AwesomeUploader} this
+             * @param {Object} fileInfo
+             */
 			'fileselected'
-				//fired when a file is selected
+            /**
+             * @event fileselectionerror
+             * Fires when the selected file either exceeds the maximum file size, 
+             * is 0-bytes, or the file type does not match the "flashSwfUploadFileTypes" mask
+             * @param {Ext.ux.AwesomeUploader} this
+             * @param {Object} fileInfo
+             * @param {String} message
+             */        
 			,'fileselectionerror'
-				// fireEvent('fileselectionerror', String message)
-				//fired by drag and drop and swfuploader if a file that is too large is selected.
-				//Swfupload also fires this even if a 0-byte file is selected or the file type does not match the "flashSwfUploadFileTypes" mask
+            /**
+             * @event uploadstart
+             * Fires when the user initiates uploading of a file.  
+             * May be called multiple times for drag&drop uploads.
+             * @param {Ext.ux.AwesomeUploader} this
+             * @param {Object} fileInfo
+             */            
 			,'uploadstart'
-				//may be called multiple times for drag and drop uploads!
+            /**
+             * @event uploadprogress
+             * Fires when an upload progress event is received.
+             * @param {Ext.ux.AwesomeUploader} this
+             * @param {Object} fileInfo
+             * @param {Number} bytesLoaded
+             * @param {Number} bytesTotal
+             */            
 			,'uploadprogress'
-				//fired when an upload progress event is received
+            /**
+             * @event uploadcomplete
+             * Fires when a file upload completes.
+             * @param {Ext.ux.AwesomeUploader} this
+             * @param {Object} fileInfo
+             * @param {Object} response The server response object will at minimum have a property "error" describing the error.
+             */            
 			,'uploadcomplete' 
-				// fireEvent('fileupload', Obj thisUploader, Bool uploadSuccessful, Obj serverResponse);
-				//server response object will at minimum have a property "error" describing the error.
+            /**
+             * @event uploadremoved
+             * Fires when the user removes a file from the queue.
+             * @param {Ext.ux.AwesomeUploader} this
+             * @param {Object} fileInfo
+             */            
 			,'uploadremoved'
+            /**
+             * @event uploadaborted
+             * Fires when the user aborts the upload.
+             * @param {Ext.ux.AwesomeUploader} this
+             * @param {Object} fileInfo
+             * @param {String} message //TODO: optional?
+             */            
 			,'uploadaborted'
+            /**
+             * @event uploaderror
+             * Fires when an error occurs during the file upload.
+             * @param {Ext.ux.AwesomeUploader} this
+             * @param {Object} fileInfo
+             * @param {String} message
+             */            
 			,'uploaderror'
 		);
 
@@ -93,28 +193,59 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			,swfUploadQueue:{}
 			,items:{
 				xtype:'box' //upload button container
-				,listeners:{
-					scope:this
-					,render:function(){
-						this.initSWFUpload();
-						this.initDragAndDropUploader();
-					}
-				}
+//				,listeners:{
+//					scope:this
+//					,render:function(){
+//						this.initSWFUpload();
+//						this.initDragAndDropUploader();
+//					}
+//				}
 			}
 		});
 		
 		Ext.ux.AwesomeUploader.superclass.initComponent.apply(this, arguments);
-	}
-	,startUpload:function(){
-		var fileId;
-		for(fileId in this.fileQueue){
-			if(this.fileQueue[fileId].status == 'started'){
-				continue;
+	}//eof initComponent
+    
+    /**
+     * @private
+     */
+    ,onRender: function(){
+        //call parent
+        Ext.ux.AwesomeUploader.superclass.onRender.apply(this, arguments);
+        
+        if(this.disableFlash){
+            this.initStandardUpload();
+        } else {
+            this.initSWFUpload();
+        }
+        if (this.enableDD){
+            this.initDragAndDropUploader();
+        }
+    }//eof onRender
+    
+    /**
+     * @public
+     * Begin uploading all queued files.
+     */
+    ,startAllUploads: function(){
+        var fileId;
+        for(fileId in this.fileQueue){
+            this.startUpload(fileId);
+        }
+    } //eof startAllUploads
+        
+    /**
+     * @public
+     * @param {Number} fileId
+     */
+	,startUpload:function(fileId){
+			if(this.fileQueue[fileId].status == this.STATUS_STARTED){
+				return;
 			}
 			switch(this.fileQueue[fileId].method){
 				case 'swfupload':
 					this.swfUploadStopped = false;
-					if(this.fileQueue[fileId].status == 'error' ){
+					if(this.fileQueue[fileId].status == this.STATUS_ERROR ){
 						this.swfUploader.requeueUpload(this.fileQueue[fileId].swfuploadFile.id);
 					}
 					
@@ -136,8 +267,8 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 					this.dragAndDropUploadStart(this.fileQueue[fileId]);
 					break;
 			}
-		}
-	}
+	}//eof startUpload
+    
     /**
      * @public
      * Abort all files.
@@ -149,9 +280,14 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 		}
 	}//eof abortAllUploads
     
+    /**
+     * @public
+     * Abort a specific file upload.
+     * @param {Number} fileId
+     */
 	,abortUpload:function(fileId){
 	
-		if(this.fileQueue[fileId].status == 'started'){
+		if(this.fileQueue[fileId].status == this.STATUS_STARTED){
 		
 			switch(this.fileQueue[fileId].method){
 				case 'swfupload':
@@ -170,18 +306,28 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 					this.fileQueue[fileId].upload.xhr.abort();
 					break;
 			}
-			this.fileQueue[fileId].status = 'aborted';
-			this.fireEvent('uploadaborted', this, Ext.apply({}, this.fileQueue[fileId]));
+			this.fileQueue[fileId].status = this.STATUS_ABORTED;
+			this.fireEvent('uploadaborted', this, Ext.apply({}, this.fileQueue[fileId]), 'User aborted');
 		}
-	}
+	}//eof abortUpload
+    
+    /**
+     * @public
+     * Remove all files from queue.
+     */
 	,removeAllUploads:function(){
 		var fileId;
 		for( fileId in this.fileQueue){
 			this.removeUpload(fileId);
 		}
-	}
+	}//eof removeAllUploads
+    
+    /**
+     * @public
+     * @param {Number} fileId
+     */
 	,removeUpload:function(fileId){
-		if(this.fileQueue[fileId].status == 'started'){
+		if(this.fileQueue[fileId].status == this.STATUS_STARTED){
 			this.abortUpload(fileId);
 		}
 		switch(this.fileQueue[fileId].method){
@@ -190,7 +336,7 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 				break;
 		}
 		
-		this.fileQueue[fileId].status = 'removed';
+		this.fileQueue[fileId].status = this.STATUS_REMOVED;
 		var fileInfo = {
 			id: fileId
 			,name: this.fileQueue[fileId].name
@@ -198,13 +344,12 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 		};
 		delete this.fileQueue[fileId];
 		this.fireEvent('uploadremoved', this, fileInfo);
-	}
+	}//eof removeUpload
+    
+    /**
+     * @private
+     */
 	,initSWFUpload:function(){
-		
-		if(this.disableFlash){
-			this.initStandardUpload();
-			return true;
-		}
 		var settings = {
 			flash_url: this.flashSwfUploadPath
 			,upload_url: this.flashUploadUrl
@@ -215,6 +360,8 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			,file_queue_limit: 0
 			,debug: false
 			,post_params: this.extraPostData
+            ,button_action: this.enableMultiple ? SWFUpload.BUTTON_ACTION.SELECT_FILES : SWFUpload.BUTTON_ACTION.SELECT_FILE
+            ,button_disabled: this.disabled
 			,button_image_url: this.flashButtonSprite
 			,button_width: this.flashButtonWidth
 			,button_height: this.flashButtonHeight
@@ -233,9 +380,12 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			,swfupload_load_failed_handler: this.initStandardUpload.createDelegate(this)
 		};
 		this.swfUploader = new SWFUpload(settings);
-	}
+	}//eof initSWFUpload
+    
+    /**
+     * @private
+     */
 	,initDragAndDropUploader:function(){
-
 		this.el.on({
 			dragenter:function(event){
 				event.browserEvent.dataTransfer.dropEffect = 'move';
@@ -298,8 +448,12 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			}
 		}
 		
-	}
-	,initStandardUpload:function(param){
+	}//eof initDragAndDropUploader
+    
+    /**
+     * @private
+     */
+	,initStandardUpload:function(){
 		if(this.uploader){
 			this.uploader.fileInput = null; //remove reference to file field. necessary to prevent destroying file field during an active upload.
 			Ext.destroy(this.uploader);
@@ -316,7 +470,13 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			}
 		});
 		
-	}
+	}//eof initStandardUpload
+    
+    /**
+     * @private
+     * @param {String} text
+     * @return {Boolean}
+     */
 	,uploaderAlert:function(text){
 		if(this.supressPopups){
 			return true;
@@ -336,17 +496,29 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			this.uploaderAlertMsg.getDialog().focus();
 		}
 		
-	}
+	}//eof uploaderAlert
+    
+    /**
+     * @private
+     * @param {Event} event
+     */
 	,processDragAndDropUpload:function(event){
+        var files, len;
+        
 		event.stopEvent();
 		if(event.browserEvent.dataTransfer && event.browserEvent.dataTransfer.files){
-			var files = event.browserEvent.dataTransfer.files;
-			var len = files.length;
+			files = event.browserEvent.dataTransfer.files;
+			len = files.length;
 			while(--len >= 0){
 				this.processDragAndDropFileUpload(files[len]);
 			}
 		}
-	}
+	}//eof processDragAndDropUpload
+    
+    /**
+     * @private
+     * @param {Object} fileInfo
+     */
 	,dragAndDropUploadStart:function(fileInfo){
 		var upload = new Ext.ux.XHRUpload({
 			url:this.xhrUploadUrl
@@ -358,26 +530,27 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			,listeners:{
 				scope:this
 				,uploadloadstart:function(event){
+                    fileInfo.status = this.STATUS_STARTED;
 					this.fireEvent('uploadstart', this, Ext.apply({}, fileInfo) );
 				}
 				,uploadprogress:function(event){
-					this.fireEvent('uploadprogress', this, fileInfo.id, event.loaded, event.total);
+					this.fireEvent('uploadprogress', this, fileInfo, event.loaded, event.total);
 				}
 				// XHR Browser Events
 				,loadstart:function(event){
-					fileInfo.status = 'started';
-					this.fireEvent('start', this, Ext.apply({}, fileInfo) );
+					fileInfo.status = this.STATUS_STARTED;
+					this.fireEvent('uploadstart', this, Ext.apply({}, fileInfo) );
 				}
 				,progress:function(event){
-					this.fireEvent('progress', this, Ext.apply({}, fileInfo), event.loaded, event.total);
+					this.fireEvent('uploadprogress', this, Ext.apply({}, fileInfo), event.loaded, event.total);
 				}
 				,abort:function(event){
-					fileInfo.status = 'aborted';
-					this.fireEvent('abort', this, Ext.apply({}, fileInfo), 'XHR upload aborted');
+					fileInfo.status = this.STATUS_ABORTED;
+					this.fireEvent('uploadaborted', this, Ext.apply({}, fileInfo), 'XHR upload aborted');
 				}
 				,error:function(event){
-					fileInfo.status = 'error';
-					this.fireEvent('error', this, Ext.apply({}, fileInfo), 'XHR upload error');
+					fileInfo.status = this.STATUS_ERROR;
+					this.fireEvent('uploaderror', this, Ext.apply({}, fileInfo), 'XHR upload error');
 				}
 				,load:function(event){
 					this.processUploadResult(fileInfo, upload.xhr.responseText);
@@ -386,13 +559,19 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 		});
 		fileInfo.upload = upload;
 		upload.send();
-	}
+	}//eof dragAndDropUploadStart
+    
+    /**
+     * @private
+     * @param {Object} file
+     * @return {Boolean}
+     */
 	,processDragAndDropFileUpload:function(file){
 		var fileInfo = {
 			id: ++this.fileId
 			,name: file.name
 			,size: file.size
-			,status:'queued'
+			,status:this.STATUS_QUEUED
 			,method: 'dnd'
 			,file: file
 		};
@@ -408,13 +587,19 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 				this.dragAndDropUploadStart(fileInfo);
 			}
 		}
-	}
+	}//eof processDragAndDropFileUpload
+    
+    /**
+     * @private
+     * @param {Object} file
+     * @return {Boolean}
+     */
 	,swfUploadfileQueued:function(file){
 		var fileInfo = {
 			id: ++this.fileId
 			,name: file.name
 			,size: file.size
-			,status:'queued'
+			,status:this.STATUS_QUEUED
 			,method: 'swfupload'
 			,swfuploadFile: file
 		}
@@ -425,56 +610,107 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			this.swfUploader.cancelUpload(file.id, false);	
 		}
 		return true;
-	}
+	}//eof swfUploadfileQueued
+    
+    /**
+     * @private
+     * @param {Object} file
+     * @param {Mixed} error
+     * @param {String} message
+     */
 	,swfUploadFileQueError:function(file, error, message){
 		var fileInfo = {
 			id: ++this.fileId
 			,name: file.name
 			,size: file.size
-			,status:'error'
+			,status:this.STATUS_ERROR
 			,method: 'swfupload'
 		}
 		this.uploaderAlert('<BR>'+fileInfo.name+'<BR><b>'+message+'</b><BR>');
 		this.fireEvent('fileselectionerror', this, Ext.apply({}, fileInfo), message);
-	}
+	}//eof swfUploadFileQueError
+    
+    /**
+     * @private
+     */
 	,swfUploadUploadStart:function(){
 		this.swfUploader.setPostParams(this.extraPostData); //sync post data with flash
 		this.swfUploader.startUpload();
-	}
+	}//eof swfUploadUploadStart
+    
+    /**
+     * @private
+     */
 	,swfUploadFileDialogComplete:function(){
 		if(this.autoStartUpload){
-			this.swfUploadUploadStart(fileInfo);
+			this.swfUploadUploadStart();
 		}
-	}
+	}//eof swfUploadFileDialogComplete
+    
+    /**
+     * @private
+     * @param {Object} file
+     * @param {Number} bytesComplete
+     * @param {Number} bytesTotal
+     */
 	,swfUploadUploadProgress:function(file, bytesComplete, bytesTotal){
-		this.fireEvent('uploadprogress', this, this.swfUploadQueue[file.id].id, bytesComplete, bytesTotal);	
-	}
+		this.fireEvent('uploadprogress', this, this.swfUploadQueue[file.id], bytesComplete, bytesTotal);	
+	}//eof swfUploadUploadProgress
+    
+    /**
+     * @private
+     * @param {Object} file
+     */
 	,swfUploadUploadStarted:function(file){
-		this.swfUploadQueue[file.id].status = 'started';
+		this.swfUploadQueue[file.id].status = this.STATUS_STARTED;
 		this.fireEvent('uploadstart', this, Ext.apply({}, this.swfUploadQueue[file.id]));
-	}
+	}//eof swfUploadUploadStarted
+    
+    /**
+     * @private
+     * @param {Object} file
+     */
 	,swfUploadComplete:function(file){ //called if the file is errored out or on success
-
 		if(!this.swfUploadStopped ){
 			this.swfUploader.startUpload(); //as per the swfupload docs, start the next upload!
 		}
-	}
+	}//eof swfUploadComplete
+    
+    /**
+     * @private
+     * @param {Object} file
+     * @param {Number} errorCode
+     * @param {String} message
+     * @return {Boolean}
+     */
 	,swfUploadUploadError:function(file, errorCode, message){
 
 		if(errorCode == -290){ //-290 = "UPLOAD_STOPPED"
 			return true;
 		}
 		
-		this.swfUploadQueue[file.id].status = 'error';
+		this.swfUploadQueue[file.id].status = this.STATUS_ERROR;
 		this.uploaderAlert('<BR>'+file.name+'<BR><b>'+message+'</b><BR>');//SWFUpload.UPLOAD_ERROR_DESC[errorCode.toString()]
 
 		this.fireEvent('uploaderror', this, Ext.apply({}, this.swfUploadQueue[file.id]), message);
-	}
+	}//eof swfUploadUploadError
+    
+    /**
+     * @private
+     * @param {Object} file
+     * @param {Object} serverData
+     */
 	,swfUploadSuccess:function(file, serverData){ //called when the file is done
 		this.processUploadResult(this.swfUploadQueue[file.id], serverData);
-	}
+	}//eof swfUploadSuccess
+    
+    /**
+     * @private
+     * @param {Ext.ux.form.FileUploadField} fileBrowser
+     * @param {String} fileName
+     * @return {Boolean}
+     */
 	,standardUploadFileSelected:function(fileBrowser, fileName){
-		
 		if(!this.alwaysShowFullFilePath){
 			var lastSlash = fileName.lastIndexOf('/'); //check for *nix full file path
 			if( lastSlash < 0 ){
@@ -488,7 +724,7 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 		var fileInfo = {
 			id: ++this.fileId
 			,name:fileName
-			,status:'queued'
+			,status:this.STATUS_QUEUED
 			,method:'standard'
 			,size:'0'
 		};
@@ -526,8 +762,13 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			this.fileQueue[fileInfo.id] = fileInfo;
 		}
 		
-	}
-	,doFormUpload : function(fileInfo){ //o, extraPostData, url){ //based off of Ext.Ajax.doFormUpload
+	}//eof standardUploadFileSelected
+    
+    /**
+     * @private
+     * @param {Object} fileInfo
+     */
+	,doFormUpload: function(fileInfo){ //o, extraPostData, url){ //based off of Ext.Ajax.doFormUpload
 		var id = Ext.id()
 			,doc = document
 			,frame = doc.createElement('iframe')
@@ -616,34 +857,96 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 		Ext.each(hiddens, function(h){
 			Ext.removeNode(h);
 		});
-	}
+	}//eof doFormUpload
+    
+    /**
+     * @private
+     * @param {Object} fileInfo
+     */
 	,standardUploadStart:function(fileInfo){
 		this.doFormUpload(fileInfo);
-		fileInfo.status = 'started';
+		fileInfo.status = this.STATUS_STARTED;
 		this.fireEvent('uploadstart', this, Ext.apply({}, fileInfo));
-	}
+	}//eof standardUploadStart
+    
+    /**
+     * @private
+     * @param {Object} form
+     * @param {Object} action
+     */
 	,standardUploadFail:function(form, action){
 		this.uploaderAlert('<BR>'+form.fileInfo.name+'<BR><b>'+action.result+'</b><BR>');
-		form.fileInfo.status = 'error';
+		form.fileInfo.status = this.STATUS_ERROR;
 		this.fireEvent('uploaderror', this, Ext.apply({}, form.fileInfo), action.result, action.response.responseText);
-	}
+	}//eof standardUploadFail
+    
+    /**
+     * @private
+     * @param {Object} fileInfo
+     */
 	,standardUploadFailAbort:function(fileInfo){
 		this.uploaderAlert('<BR>'+ fileInfo.name + this.i18n[this.locale].uploadAbortedMessage);
-		form.fileInfo.status = 'error';
+		form.fileInfo.status = this.STATUS_ERROR;
 		this.fireEvent('uploaderror', this, Ext.apply({}, fileInfo), 'aborted');
-	}
+	}//eof standardUploadFailAbort
+    
+    /**
+     * @private
+     * @param {Object} fileInfo
+     * @param {Object} serverData
+     */
 	,processUploadResult:function(fileInfo, serverData){
-
 		var uploadCompleteData = {};
+        
+        fileInfo.status = this.STATUS_COMPLETE;
 		if(false !== this.fireEvent('uploadcomplete', this, Ext.apply({},fileInfo), serverData, uploadCompleteData ) ){
-			fileInfo.status = 'completed';
+			//
 		}else{
 			this.uploaderAlert('<BR>'+ this.i18n[this.locale].uploadErrorMessage +' <b>'+fileInfo.name+'</b><BR>');
-			fileInfo.status = 'error';
+			fileInfo.status = this.STATUS_ERROR;
 			this.fireEvent('uploaderror', this, Ext.apply({}, fileInfo), serverData, uploadCompleteData);
 		}
-		
-	}
+	}//eof processUploadResult
+    
+    /**
+     * @private
+     */
+    ,onDestroy: function(){
+        //Objects we created must therefore get destroyed explicitly
+        Ext.destroy(this.swfUploader,this.uploader);
+        
+        //destroy our references only - this will take care of the rest        
+        this.swfUploader = //flash uploader
+        this.uploader = //file upload field
+            null;
+            
+        //parent
+        Ext.ux.AwesomeUploader.superclass.onDestroy.apply(this,arguments);
+    }//eof onDestroy
+    
+    /**
+     * @private
+     * OVERLOADS parent
+     */
+    ,onDisable: function(){
+        //parent
+        Ext.ux.AwesomeUploader.superclass.onDisable.apply(this,arguments);
+        
+        this.swfUploader.setButtonDisabled(true);
+    }//eof onDisable
+    
+    /**
+     * @private
+     * OVERLOADS parent
+     */
+    ,onEnable: function(){
+        //parent
+        Ext.ux.AwesomeUploader.superclass.onEnable.apply(this,arguments);
+        
+        this.swfUploader.setButtonDisabled(false);
+    }//eof onDisable      
 });
 
 Ext.reg('awesomeuploader', Ext.ux.AwesomeUploader);
+
+//end of file
