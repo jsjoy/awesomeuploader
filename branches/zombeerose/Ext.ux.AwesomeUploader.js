@@ -49,7 +49,7 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
      * @cfg {Boolean} enableMultiple
      * Indicates if the file dialog allows for multiple selections.  Defaults to true.
      */
-    ,enableMultiple: true     
+    ,enableMultiple: true
     
     //constants
     /**
@@ -193,13 +193,10 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			,swfUploadQueue:{}
 			,items:{
 				xtype:'box' //upload button container
-//				,listeners:{
-//					scope:this
-//					,render:function(){
-//						this.initSWFUpload();
-//						this.initDragAndDropUploader();
-//					}
-//				}
+				,listeners:{
+					scope:this
+					,render:this.initUploaders
+				}
 			}
 		});
 		
@@ -209,9 +206,9 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
     /**
      * @private
      */
-    ,onRender: function(){
+    ,initUploaders: function(){
         //call parent
-        Ext.ux.AwesomeUploader.superclass.onRender.apply(this, arguments);
+        //Ext.ux.AwesomeUploader.superclass.onRender.apply(this, arguments);
         
         if(this.disableFlash){
             this.initStandardUpload();
@@ -931,8 +928,12 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
     ,onDisable: function(){
         //parent
         Ext.ux.AwesomeUploader.superclass.onDisable.apply(this,arguments);
-        
-        this.swfUploader.setButtonDisabled(true);
+
+		if(this.uploader){
+			this.uploader.disable();
+		}else{
+			this.swfUploader.setButtonDisabled(true);
+		}
     }//eof onDisable
     
     /**
@@ -943,7 +944,11 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
         //parent
         Ext.ux.AwesomeUploader.superclass.onEnable.apply(this,arguments);
         
-        this.swfUploader.setButtonDisabled(false);
+        if(this.uploader){
+        	this.uploader.enable();
+        }else{
+        	this.swfUploader.setButtonDisabled(false);
+        }
     }//eof onDisable      
 });
 

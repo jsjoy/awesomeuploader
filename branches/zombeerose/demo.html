@@ -204,7 +204,7 @@ Ext.onReady(function(){
 		},{
 			xtype:'grid'
 			,ref:'awesomeUploaderGrid'
-			,width:420
+			,width:470
 			,height:200
 			,enableHdMenu:false
 			,tbar:[
@@ -254,6 +254,17 @@ Ext.onReady(function(){
 				,scope:this
 				,handler:function(){
 					fileUploadPanel.awesomeUploader.removeAllUploads();
+				}
+			},'->',{
+				text:'Toggle Disable'
+				,icon:'/inc/img/delete.png'
+				,scope:this
+				,handler:function(){
+					if(fileUploadPanel.awesomeUploader.disabled){
+						fileUploadPanel.awesomeUploader.enable();
+					}else{
+						fileUploadPanel.awesomeUploader.disable();
+					}
 				}
 			}]
 			,store:new Ext.data.JsonStore({
