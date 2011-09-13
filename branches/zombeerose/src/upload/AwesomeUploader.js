@@ -244,7 +244,7 @@ Ext.define('Ext.ux.upload.AwesomeUploader',{
             ,debug: false
             ,i18n: lang
             ,locale:locale
-            ,flashButtonSprite:root+'swfupload_browse_button_trans_56x22.PNG'
+            ,flashButtonSprite:'/resources/images/upload/browse-sprite.png'
             ,flashButtonWidth:56
             ,flashButtonHeight:22
             ,flashUploadFilePostName:'Filedata'
