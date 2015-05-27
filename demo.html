@@ -1,7 +1,7 @@
 <html>
 <head>
 <title>Ext JS Awesome Uploader</title>
-<link rel="stylesheet" type="text/css" href="/inc/js/ext-3.2.1/resources/css/ext-all.css" />
+<link rel="stylesheet" type="text/css" href="/inc/js/ext-4.2.1.883/resources/css/ext-all.css" />
 <link rel="stylesheet" type="text/css" href="Ext.ux.form.FileUploadField.css" />
 <link rel="stylesheet" type="text/css" href="AwesomeUploader.css" />
 <link rel="stylesheet" type="text/css" href="AwesomeUploader Progress Bar.css" />
@@ -39,8 +39,7 @@ If all uploads succeed: {"success":true}<BR>
 If an upload fails: {"success":false,"error":"Reason for error!"}<BR>
 Upon failure, the "Reason for error!" part will be displayed in a message box.<BR>
 <BR>
-<script type="text/javascript" src="/inc/js/ext-3.2.1/adapter/ext/ext-base-debug.js"></script>
-<script type="text/javascript" src="/inc/js/ext-3.2.1/ext-all-debug.js"></script>
+<script type="text/javascript" src="/inc/js/ext-4.2.1.883/ext-all-debug.js"></script>
 
 <script type="text/javascript" src="Ext.ux.form.FileUploadField.js"></script>
 <script type="text/javascript" src="Ext.ux.XHRUpload.js"></script>
@@ -50,7 +49,7 @@ Upon failure, the "Reason for error!" part will be displayed in a message box.<B
 <script type="text/javascript" src="Ext.ux.AwesomeUploader.js"></script>
 <script type="text/javascript">
 
-Ext.BLANK_IMAGE_URL = '/inc/js/ext-3.2.1/resources/images/default/s.gif';
+Ext.BLANK_IMAGE_URL = '/inc/js/ext-4.2.1.883/resources/images/default/s.gif';
 
 Ext.onReady(function(){
 
@@ -93,15 +92,16 @@ Ext.onReady(function(){
 		'</div>'
     ),
     
-	progressBarColumnRenderer = function(value, meta, record, rowIndex, colIndex, store){
-        meta.css += ' x-grid3-td-progress-cell';
-		return progressBarColumnTemplate.apply({
-			value: value
-		});
+	progressBarColumnRenderer = function(progress, meta, record, rowIndex, colIndex, store){
+        var b = new Ext.ProgressBar({height: 15});
+        return (function(progress) {
+            b.updateProgress(progress);
+            return Ext.DomHelper.markup(b.getRenderTree());
+        })(progress);
 	},
 	
 	updateFileUploadRecord = function(id, column, value){
-		var rec = fileUploadPanel.awesomeUploaderGrid.store.getById(id);
+		var rec = fileUploadPanel.queryById('awesomeUploaderGrid').store.getById(id);
 		rec.set(column, value);
 		rec.commit();
 	};
@@ -115,7 +115,7 @@ Ext.onReady(function(){
 		,items:[
 		{
 			xtype:'awesomeuploader'
-			,ref:'awesomeUploader'
+			,itemId:'awesomeUploader'
 			,extraPostData:{
 				'key':'value'
 				,'test':'testvalue'
@@ -145,13 +145,13 @@ Ext.onReady(function(){
 						return false;
 					}
 					
-					fileUploadPanel.awesomeUploaderGrid.store.loadData({
+					fileUploadPanel.queryById('awesomeUploaderGrid').store.loadData([{
 						id:file.id
 						,name:file.name
 						,size:file.size
 						,status:'Pending'
 						,progress:0
-					}, true);
+					}], true);
 				}
 				,uploadstart:function(awesomeUploader, file){
 				
@@ -186,7 +186,7 @@ Ext.onReady(function(){
 				}
 				,uploadremoved:function(awesomeUploader, file ){
 					
-					fileUploadPanel.awesomeUploaderGrid.store.remove(fileUploadPanel.awesomeUploaderGrid.store.getById(file.id) );
+					fileUploadPanel.queryById('awesomeUploaderGrid').store.remove(fileUploadPanel.queryById('awesomeUploaderGrid').store.getById(file.id) );
 				}
 				,uploaderror:function(awesomeUploader, file, serverData, resultObject){
 					resultObject = resultObject || {};
@@ -203,7 +203,7 @@ Ext.onReady(function(){
 			}
 		},{
 			xtype:'grid'
-			,ref:'awesomeUploaderGrid'
+			,itemId:'awesomeUploaderGrid'
 			,width:420
 			,height:200
 			,enableHdMenu:false
@@ -213,51 +213,51 @@ Ext.onReady(function(){
 				,icon:'/inc/img/tick.png'
 				,scope:this
 				,handler:function(){
-					fileUploadPanel.awesomeUploader.startUpload();
+					fileUploadPanel.queryById('awesomeUploader').startUpload();
 				}
 			},{
 				text:'Abort'
 				,icon:'/inc/img/cancel.png'
 				,scope:this
 				,handler:function(){
-					var selModel = fileUploadPanel.awesomeUploaderGrid.getSelectionModel();
+					var selModel = fileUploadPanel.queryById('awesomeUploaderGrid').getSelectionModel();
 					if(!selModel.hasSelection()){
 						Ext.Msg.alert('','Please select an upload to cancel');
 						return true;
 					}
 					var rec = selModel.getSelected();
-					fileUploadPanel.awesomeUploader.abortUpload(rec.data.id);
+					fileUploadPanel.queryById('awesomeUploader').abortUpload(rec.data.id);
 				}
 			},{
 				text:'Abort All'
 				,icon:'/inc/img/cancel.png'
 				,scope:this
 				,handler:function(){
-					fileUploadPanel.awesomeUploader.abortAllUploads();
+					fileUploadPanel.queryById('awesomeUploader').abortAllUploads();
 				}
 			},{
 				text:'Remove'
 				,icon:'/inc/img/cross.png'
 				,scope:this
 				,handler:function(){
-					var selModel = fileUploadPanel.awesomeUploaderGrid.getSelectionModel();
+					var selModel = fileUploadPanel.queryById('awesomeUploaderGrid').getSelectionModel();
 					if(!selModel.hasSelection()){
 						Ext.Msg.alert('','Please select an upload to cancel');
 						return true;
 					}
 					var rec = selModel.getSelected();
-					fileUploadPanel.awesomeUploader.removeUpload(rec.data.id);
+					fileUploadPanel.queryById('awesomeUploader').removeUpload(rec.data.id);
 				}
 			},{
 				text:'Remove All'
 				,icon:'/inc/img/cross.png'
 				,scope:this
 				,handler:function(){
-					fileUploadPanel.awesomeUploader.removeAllUploads();
+					fileUploadPanel.queryById('awesomeUploader').removeAllUploads();
 				}
 			}]
 			,store:new Ext.data.JsonStore({
-				fields: ['id','name','size','status','progress']
+				fields: [{name:'id', type:'string'},'name','size','status','progress']
     			,idProperty: 'id'
 			})
 			,columns:[

@@ -29,9 +29,9 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-Ext.ns('Ext.ux');
-
-Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
+Ext.define('Ext.ux.AwesomeUploader', {
+	extend:'Ext.Container',
+	alias: 'widget.awesomeuploader',
 	initComponent:function(){
 		
 		this.addEvents(
@@ -138,17 +138,12 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			}
 		}
 	}
-    /**
-     * @public
-     * Abort all files.
-     */
 	,abortAllUploads:function(){
 		var fileId;
 		for(fileId in this.fileQueue){
 			this.abortUpload(fileId);
 		}
-	}//eof abortAllUploads
-    
+	}
 	,abortUpload:function(fileId){
 	
 		if(this.fileQueue[fileId].status == 'started'){
@@ -221,16 +216,16 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			,button_window_mode: 'opaque'
 			,file_post_name: this.flashUploadFilePostName
 			,button_placeholder: this.items.items[0].el.dom
-			,file_queued_handler: this.swfUploadfileQueued.createDelegate(this)
-			,file_dialog_complete_handler: this.swfUploadFileDialogComplete.createDelegate(this)
-			,upload_start_handler: this.swfUploadUploadStarted.createDelegate(this)
-			,upload_error_handler: this.swfUploadUploadError.createDelegate(this)
-			,upload_progress_handler: this.swfUploadUploadProgress.createDelegate(this)
-			,upload_success_handler: this.swfUploadSuccess.createDelegate(this)
-			,upload_complete_handler: this.swfUploadComplete.createDelegate(this)
-			,file_queue_error_handler: this.swfUploadFileQueError.createDelegate(this)
+			,file_queued_handler: 			this.swfUploadfileQueued.bind(this)				//this.swfUploadfileQueued.createDelegate(this)
+			,file_dialog_complete_handler: 	this.swfUploadFileDialogComplete.bind(this)		//this.swfUploadFileDialogComplete.createDelegate(this)
+			,upload_start_handler: 			this.swfUploadUploadStarted.bind(this)			//this.swfUploadUploadStarted.createDelegate(this)
+			,upload_error_handler: 			this.swfUploadUploadError.bind(this)				//this.swfUploadUploadError.createDelegate(this)
+			,upload_progress_handler:		this.swfUploadUploadProgress.bind(this)			//this.swfUploadUploadProgress.createDelegate(this)
+			,upload_success_handler: 		this.swfUploadSuccess.bind(this)					//this.swfUploadSuccess.createDelegate(this)
+			,upload_complete_handler: 		this.swfUploadComplete.bind(this)					//this.swfUploadComplete.createDelegate(this)
+			,file_queue_error_handler: 		this.swfUploadFileQueError.bind(this)				//this.swfUploadFileQueError.createDelegate(this)
 			,minimum_flash_version: '9.0.28'
-			,swfupload_load_failed_handler: this.initStandardUpload.createDelegate(this)
+			,swfupload_load_failed_handler: this.initStandardUpload.bind(this)				// this.initStandardUpload.createDelegate(this)
 		};
 		this.swfUploader = new SWFUpload(settings);
 	}
@@ -248,7 +243,18 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 			}
 			,drop:{
 				scope:this
-				,fn:this.processDragAndDropUpload
+				,fn:function(event){
+					event.stopEvent();
+					var files = event.browserEvent.dataTransfer.files;
+
+					if(files === undefined){
+						return true;
+					}
+					var len = files.length;
+					while(--len >= 0){
+						this.processDragAndDropFileUpload(files[len]);
+					}
+				}
 			}
 		});
 		
@@ -268,7 +274,18 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 				}
 				,drop:{
 					scope:this
-					,fn:this.processDragAndDropUpload
+					,fn:function(event){
+						event.stopEvent();
+						var files = event.browserEvent.dataTransfer.files;
+	
+						if(files === undefined){
+							return true;
+						}
+						var len = files.length;
+						while(--len >= 0){
+							this.processDragAndDropFileUpload(files[len]);
+						}
+					}
 				}
 			});
 
@@ -333,19 +350,9 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 		}else{
 			this.uploaderAlertMsgText += text;
 			this.uploaderAlertMsg.updateText(this.uploaderAlertMsgText);
-			this.uploaderAlertMsg.getDialog().focus();
+			this.uploaderAlertMsg.focus();
 		}
 		
-	}
-	,processDragAndDropUpload:function(event){
-		event.stopEvent();
-		if(event.browserEvent.dataTransfer && event.browserEvent.dataTransfer.files){
-			var files = event.browserEvent.dataTransfer.files;
-			var len = files.length;
-			while(--len >= 0){
-				this.processDragAndDropFileUpload(files[len]);
-			}
-		}
 	}
 	,dragAndDropUploadStart:function(fileInfo){
 		var upload = new Ext.ux.XHRUpload({
@@ -389,7 +396,7 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 	}
 	,processDragAndDropFileUpload:function(file){
 		var fileInfo = {
-			id: ++this.fileId
+			id: "up" + (++this.fileId)
 			,name: file.name
 			,size: file.size
 			,status:'queued'
@@ -411,7 +418,7 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 	}
 	,swfUploadfileQueued:function(file){
 		var fileInfo = {
-			id: ++this.fileId
+			id: "up" + (++this.fileId)
 			,name: file.name
 			,size: file.size
 			,status:'queued'
@@ -428,7 +435,7 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 	}
 	,swfUploadFileQueError:function(file, error, message){
 		var fileInfo = {
-			id: ++this.fileId
+			id: "up" + (++this.fileId)
 			,name: file.name
 			,size: file.size
 			,status:'error'
@@ -443,7 +450,7 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 	}
 	,swfUploadFileDialogComplete:function(){
 		if(this.autoStartUpload){
-			this.swfUploadUploadStart(fileInfo);
+			this.swfUploadUploadStart();
 		}
 	}
 	,swfUploadUploadProgress:function(file, bytesComplete, bytesTotal){
@@ -486,7 +493,7 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 		}
 		
 		var fileInfo = {
-			id: ++this.fileId
+			id: "up" + (++this.fileId)
 			,name:fileName
 			,status:'queued'
 			,method:'standard'
@@ -521,21 +528,21 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 		if(false !== this.fireEvent('fileselected', this, Ext.apply({},fileInfo) ) ){
 			
 			if(this.autoStartUpload){
-				this.standardUploadStart(fileInfo);
+				this.standardUploadStart();
 			}
 			this.fileQueue[fileInfo.id] = fileInfo;
 		}
 		
 	}
 	,doFormUpload : function(fileInfo){ //o, extraPostData, url){ //based off of Ext.Ajax.doFormUpload
-		var id = Ext.id()
-			,doc = document
-			,frame = doc.createElement('iframe')
-			,form = Ext.getDom(fileInfo.form)
-			,hiddens = []
-			,hd
-			,encoding = 'multipart/form-data'
-			,buf = {
+		var id = Ext.id(),
+			doc = document,
+			frame = doc.createElement('iframe'),
+			form = Ext.getDom(fileInfo.form),
+			hiddens = [],
+			hd,
+			encoding = 'multipart/form-data',
+			buf = {
 				target: form.target,
 				method: form.method,
 				encoding: form.encoding,
@@ -645,5 +652,3 @@ Ext.ux.AwesomeUploader = Ext.extend(Ext.Container, {
 		
 	}
 });
-
-Ext.reg('awesomeuploader', Ext.ux.AwesomeUploader);
