@@ -61,12 +61,12 @@ Ext.ux.XHRUpload = function(config){
 		,sendMultiPartFormData:false
 	});
 	this.addEvents( //extend the xhr's progress events to here
-		'loadstart',
-		'progress',
-		'abort',
-		'error',
-		'load',
-		'loadend'
+		'loadstart'
+		,'progress'
+		,'abort'
+		,'error'
+		,'load'
+		,'loadend'
 	);
 	Ext.ux.XHRUpload.superclass.constructor.call(this);
 };
@@ -76,26 +76,26 @@ Ext.extend(Ext.ux.XHRUpload, Ext.util.Observable,{
 		Ext.apply(this, config);
 		
 		this.xhr = new XMLHttpRequest();
-		this.xhr.addEventListener('loadstart', this.relayXHREvent.createDelegate(this), false);
-		this.xhr.addEventListener('progress', this.relayXHREvent.createDelegate(this), false);
-		this.xhr.addEventListener('progressabort', this.relayXHREvent.createDelegate(this), false);
-		this.xhr.addEventListener('error', this.relayXHREvent.createDelegate(this), false);
-		this.xhr.addEventListener('load', this.relayXHREvent.createDelegate(this), false);
-		this.xhr.addEventListener('loadend', this.relayXHREvent.createDelegate(this), false);
+		this.xhr.addEventListener('loadstart', this.relayXHREvent.bind(this), false);
+		this.xhr.addEventListener('progress', this.relayXHREvent.bind(this), false);
+		this.xhr.addEventListener('progressabort', this.relayXHREvent.bind(this), false);
+		this.xhr.addEventListener('error', this.relayXHREvent.bind(this), false);
+		this.xhr.addEventListener('load', this.relayXHREvent.bind(this), false);
+		this.xhr.addEventListener('loadend', this.relayXHREvent.bind(this), false);
 		
-		this.xhr.upload.addEventListener('loadstart', this.relayUploadEvent.createDelegate(this), false);
-		this.xhr.upload.addEventListener('progress', this.relayUploadEvent.createDelegate(this), false);
-		this.xhr.upload.addEventListener('progressabort', this.relayUploadEvent.createDelegate(this), false);
-		this.xhr.upload.addEventListener('error', this.relayUploadEvent.createDelegate(this), false);
-		this.xhr.upload.addEventListener('load', this.relayUploadEvent.createDelegate(this), false);
-		this.xhr.upload.addEventListener('loadend', this.relayUploadEvent.createDelegate(this), false);
+		this.xhr.upload.addEventListener('loadstart', this.relayUploadEvent.bind(this), false);
+		this.xhr.upload.addEventListener('progress', this.relayUploadEvent.bind(this), false);
+		this.xhr.upload.addEventListener('progressabort', this.relayUploadEvent.bind(this), false);
+		this.xhr.upload.addEventListener('error', this.relayUploadEvent.bind(this), false);
+		this.xhr.upload.addEventListener('load', this.relayUploadEvent.bind(this), false);
+		this.xhr.upload.addEventListener('loadend', this.relayUploadEvent.bind(this), false);
 
 		this.xhr.open(this.method, this.url, true);
 		
 		if(typeof(FileReader) !== 'undefined' && this.sendMultiPartFormData ){
 			//currently this is firefox only, chrome 6 will support this in the future
 			this.reader = new FileReader();
-			this.reader.addEventListener('load', this.sendFileUpload.createDelegate(this), false);
+			this.reader.addEventListener('load', this.sendFileUpload.bind(this), false);
 			this.reader.readAsBinaryString(this.file);
 			return true;	
 		}

@@ -4,7 +4,6 @@
  * licensing@extjs.com
  * http://www.extjs.com/license
  */
-Ext.ns('Ext.ux.form');
 
 /**
  * @class Ext.ux.form.FileUploadField
@@ -12,7 +11,9 @@ Ext.ns('Ext.ux.form');
  * Creates a file upload field.
  * @xtype fileuploadfield
  */
-Ext.ux.form.FileUploadField = Ext.extend(Ext.form.TextField,  {
+Ext.define('Ext.ux.form.FileUploadField', {
+	extend:'Ext.form.TextField', 
+	alias:'widget.fileuploadfield', 
     /**
      * @cfg {String} buttonText The button text to display on the upload button (defaults to
      * 'Browse...').  Note that if you supply a value for {@link #buttonCfg}, the buttonCfg.text
@@ -175,8 +176,3 @@ Ext.ux.form.FileUploadField = Ext.extend(Ext.form.TextField,  {
     }
 
 });
-
-Ext.reg('fileuploadfield', Ext.ux.form.FileUploadField);
-
-// backwards compat
-Ext.form.FileUploadField = Ext.ux.form.FileUploadField;

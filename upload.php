@@ -25,8 +25,17 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+$relativePath = 'uploads';
 
-$save_path = $_SERVER['DOCUMENT_ROOT'].'/uploads/';
+$forwardSlashPos = strrpos(__FILE__, '/');
+$backSlashPos = strrpos(__FILE__, '\\');
+if($forwardSlashPos){
+	$save_path = substr(__FILE__, 0, $forwardSlashPos).'/'.$relativePath.'/';
+}else{
+	$save_path = substr(__FILE__, 0, $backSlashPos).'\\'.$relativePath.'\\';
+}
+
+
 $valid_chars_regex = '.A-Z0-9_ !@#$%^&()+={}\[\]\',~`-';	// Characters allowed in the file name (in a Regular Expression format)
 //$extension_whitelist = array('csv', 'gif', 'png','tif');	// Allowed file extensions
 $MAX_FILENAME_LENGTH = 260;
@@ -71,6 +80,8 @@ Notes:
 	 our defined max.  These values are not tied to your SWFUpload file_size_limit setting.
 	
 */
+//print_r($_POST);
+//exit;
 
 // Check post_max_size (http://us3.php.net/manual/en/features.file-upload.php#73762)
 	$POST_MAX_SIZE = ini_get('post_max_size');
@@ -96,7 +107,7 @@ Notes:
 	);
 
 // Validate the upload
-	if (!isset($_FILES[$upload_name])) {
+	if(!isset($_FILES[$upload_name]) ){
 		HandleError('No upload found in \$_FILES for ' . $upload_name);
 	} else if (isset($_FILES[$upload_name]["error"]) && $_FILES[$upload_name]["error"] != 0) {
 		HandleError($uploadErrors[$_FILES[$upload_name]["error"]]);
@@ -118,7 +129,7 @@ Notes:
 
 // Validate file name (for our purposes we'll just remove invalid characters)
 	$file_name = preg_replace('/[^'.$valid_chars_regex.']|\.+$/i', "", basename($_FILES[$upload_name]['name']));
-	if (strlen($file_name) == 0 || strlen($file_name) > $MAX_FILENAME_LENGTH) {
+	if(strlen($file_name) == 0 || strlen($file_name) > $MAX_FILENAME_LENGTH ){
 		HandleError('Invalid file name');
 	}
 

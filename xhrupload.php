@@ -25,8 +25,18 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+$relativePath = 'uploads';
 
-$save_path = $_SERVER['DOCUMENT_ROOT'].'/uploads/';
+$forwardSlashPos = strrpos(__FILE__, '/');
+$backSlashPos = strrpos(__FILE__, '\\');
+if($forwardSlashPos){
+	$save_path = substr(__FILE__, 0, $forwardSlashPos).'/'.$relativePath.'/';
+}else{
+	$save_path = substr(__FILE__, 0, $backSlashPos).'\\'.$relativePath.'\\';
+}
+
+//$save_path = $_SERVER['DOCUMENT_ROOT'].'/awesomeuploadertest/testuploads/';
+
 $valid_chars_regex = '.A-Z0-9_ !@#$%^&()+={}\[\]\',~`-';	// Characters allowed in the file name (in a Regular Expression format)
 //$extension_whitelist = array('csv', 'gif', 'png','tif');	// Allowed file extensions
 $MAX_FILENAME_LENGTH = 260;
@@ -64,7 +74,9 @@ if(file_exists($save_path . $file_name) ){
 */
 
 $file = file_get_contents('php://input');
-file_put_contents($save_path.$file_name, $file);
+if(FALSE === file_put_contents($save_path.$file_name, $file) ){
+	die('{"success":false,"error":"Error saving file. Check that directory exists and permissions are set properly"}');	
+}
 die('{"success":true}');
 
 function HandleError($message){
